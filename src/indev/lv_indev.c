@@ -695,15 +695,28 @@ static void indev_pointer_proc(lv_indev_t * i, lv_indev_data_t * data)
     i->pointer.last_raw_point.x = data->point.x;
     i->pointer.last_raw_point.y = data->point.y;
 
-    if(disp->rotation == LV_DISPLAY_ROTATION_180 || disp->rotation == LV_DISPLAY_ROTATION_270) {
-        data->point.x = disp->hor_res - data->point.x - 1;
-        data->point.y = disp->ver_res - data->point.y - 1;
+    // Fix for matching touch and display rotations
+    // https://forum.lvgl.io/t/screen-rotation/19316/12
+    uint32_t tmp;
+    switch(disp->rotation) {
+        case LV_DISPLAY_ROTATION_90:
+            tmp = data->point.y;
+            data->point.y = disp->hor_res - data->point.x - 1;
+            data->point.x = tmp;
+        break;
+            
+        case LV_DISPLAY_ROTATION_180:
+            data->point.x = disp->hor_res - data->point.x - 1;
+            data->point.y = disp->ver_res - data->point.y - 1;
+        break;
+            
+        case LV_DISPLAY_ROTATION_270:
+            tmp = data->point.y;
+            data->point.y = data->point.x;
+            data->point.x = disp->ver_res - tmp - 1;
+        break;
     }
-    if(disp->rotation == LV_DISPLAY_ROTATION_90 || disp->rotation == LV_DISPLAY_ROTATION_270) {
-        int32_t tmp = data->point.y;
-        data->point.y = data->point.x;
-        data->point.x = disp->ver_res - tmp - 1;
-    }
+
 
     /*Simple sanity check*/
     if(data->point.x < 0) {
